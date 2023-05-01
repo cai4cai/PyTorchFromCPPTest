@@ -3,8 +3,8 @@
 // This software is licensed under the Apache 2 License.
 // See the LICENSE file for details.
 
-#include <pybind11/pybind11.h>
 #include <pybind11/embed.h>
+#include <pybind11/pybind11.h>
 #include <torch/torch.h>
 
 #include <iostream>
@@ -14,7 +14,8 @@ namespace py = pybind11;
 int hybridcall() {
   std::cout << "Starting test from c++" << std::endl;
   torch::Tensor tensor = torch::rand({2, 3});
-  std::cout << "Random 2x3 tensor (c++ side):" << std::endl << tensor << std::endl;
+  std::cout << "Random 2x3 tensor (c++ side):" << std::endl
+            << tensor << std::endl;
 
   py::scoped_interpreter guard{};
 
