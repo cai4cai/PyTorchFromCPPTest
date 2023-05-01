@@ -64,3 +64,7 @@ else()
   target_link_libraries(pytorchfromcpptest
     "${TORCH_LIBRARIES}")
 endif()
+
+# Add to ctest
+enable_testing()
+add_test(NAME pytorchfromcpptest COMMAND pytorchfromcpptest)
