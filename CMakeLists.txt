@@ -12,6 +12,19 @@ else()
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+# Optionally enable clang-tidy
+find_program(CLANG_TIDY_EXE NAMES clang-tidy PATHS /opt/homebrew/opt/llvm/bin/)
+if(NOT CLANG_TIDY_EXE)
+  message(STATUS "clang-tidy not found. Skipping corresponding checks.")
+else()
+  set(CMAKE_CXX_CLANG_TIDY 
+    ${CLANG_TIDY_EXE};
+    -header-filter=.*;
+    -checks=-*,portability-*,bugprone-*,readability-,clang-analyzer-*,performance-*,cppcoreguidelines-*;
+    )
+  message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}.")
+endif()
+
 # fetch libtorch
 include(FetchContent)
 
@@ -54,16 +67,21 @@ add_executable(pytorchfromcpptest
 if(APPLE AND (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64"))
   # Hack to workaround https://github.com/mlverse/libtorch-mac-m1/issues/4 
   target_link_libraries(pytorchfromcpptest
-    "${TORCH_INSTALL_PREFIX}/lib/libomp.dylib;${TORCH_LIBRARIES}")
+    PRIVATE "${TORCH_INSTALL_PREFIX}/lib/libomp.dylib")
 
   add_custom_command(TARGET pytorchfromcpptest 
     POST_BUILD COMMAND 
     ${CMAKE_INSTALL_NAME_TOOL} -change /opt/homebrew/opt/libomp/lib/libomp.dylib @rpath/libomp.dylib 
     $<TARGET_FILE:pytorchfromcpptest>)
-else()
-  target_link_libraries(pytorchfromcpptest
-    "${TORCH_LIBRARIES}")
 endif()
+
+target_link_libraries(pytorchfromcpptest
+  PRIVATE "${TORCH_LIBRARIES}")
+target_link_libraries(pytorchfromcpptest
+  PRIVATE Python::Python)
+
+# Give access to python files through a hardcoded definition
+target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_SYS_PATH="${PyTorchFromCPPTest_SOURCE_DIR}")
 
 # Add to ctest
 enable_testing()
