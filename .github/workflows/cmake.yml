@@ -28,7 +28,7 @@ jobs:
         python-version: '3.11'
 
     - name: Install Python dependencies
-      run: pip install torch
+      run: pip install torch --index-url https://download.pytorch.org/whl/cpu
 
     - name: Configure CMake
       # Configure CMake in a 'build' subdirectory.
