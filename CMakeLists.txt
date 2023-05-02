@@ -56,9 +56,15 @@ target_link_libraries(pytorchfromcpptest PRIVATE "${TORCHPY_LIB}")
 
 # Give access to python files through a hardcoded definition
 cmake_path(NATIVE_PATH PyTorchFromCPPTest_SOURCE_DIR NORMALIZE NATIVE_CUSTOM_MODULE_SYS_PATH)
+if(WIN32)
+  string(REPLACE "\\" "\\\\" NATIVE_CUSTOM_MODULE_SYS_PATH ${NATIVE_CUSTOM_MODULE_SYS_PATH})
+endif(WIN32)
 target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_MODULE_SYS_PATH="${NATIVE_CUSTOM_MODULE_SYS_PATH}")
 set(torchpath "${TORCH_CMAKE_PREFIX_PATH}/../../..")
 cmake_path(NATIVE_PATH torchpath NORMALIZE NATIVE_CUSTOM_TORCH_SYS_PATH)
+if(WIN32)
+  string(REPLACE "\\" "\\\\" NATIVE_CUSTOM_TORCH_SYS_PATH ${NATIVE_CUSTOM_TORCH_SYS_PATH})
+endif(WIN32)
 target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_TORCH_SYS_PATH="${NATIVE_CUSTOM_TORCH_SYS_PATH}")
 
 # Add to ctest
