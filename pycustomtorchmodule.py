@@ -1,6 +1,7 @@
-# import torch
+import torch
 
 
 def simpleop(inval):
     print("Start python op")
-    return inval
+    print(inval)
+    return 2 * inval

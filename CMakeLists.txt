@@ -25,55 +25,26 @@ else()
   message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}.")
 endif()
 
-# fetch libtorch
-include(FetchContent)
+# Get python
+find_package(Python REQUIRED COMPONENTS Interpreter Development)
+message(STATUS "Found python: ${Python_EXECUTABLE}")
 
-# Get libtorch binaries. For simplicity, cpu-only version are used here
-if(MSVC)
-  set(libtorch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-win-shared-with-deps-2.0.0%2Bcpu.zip")
-  set(libtorch_MD5 "558517f2feba033f57233d3e512ba8af")
-elseif(LINUX)
-  set(libtorch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-cxx11-abi-shared-with-deps-2.0.0%2Bcpu.zip")
-  set(libtorch_MD5 "8f9fa09c72c05cffef7135711dcac92a")
-elseif(APPLE)
-  if(${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64")
-    # Official libtorch doesn't support arm64 on mac
-    set(libtorch_URL "https://github.com/mlverse/libtorch-mac-m1/releases/download/LibTorch/libtorch-v2.0.0.zip")
-    set(libtorch_MD5 "eb3d8b8567a12d22fcd1e144afa1f791")
-  else()
-    set(libtorch_URL "https://download.pytorch.org/libtorch/cpu/libtorch-macos-2.0.0.zip")
-    set(libtorch_MD5 "b1a87518e95f24452af71759b64f2e1f")
-  endif()
-endif()
-message(STATUS "Using libtorch from: ${libtorch_URL}")
+# Find where pytorch lives
+execute_process(COMMAND ${Python_EXECUTABLE} ${PyTorchFromCPPTest_SOURCE_DIR}/findtorchcmake.py
+                OUTPUT_VARIABLE TORCH_CMAKE_PREFIX_PATH
+		OUTPUT_STRIP_TRAILING_WHITESPACE
+                RESULT_VARIABLE FOUND_TORCH_CMAKE_PREFIX_PATH)
+message(STATUS "Found torch.utils.cmake_prefix_path: ${TORCH_CMAKE_PREFIX_PATH}")
 
-FetchContent_Declare(
-  libtorch
-  URL        ${libtorch_URL}
-  URL_HASH   MD5=${libtorch_MD5}
-  SYSTEM
-  FIND_PACKAGE_ARGS NAMES Torch
-)
+# Find torch for cmake purposes
+find_package(Torch REQUIRED PATHS "${TORCH_CMAKE_PREFIX_PATH}/Torch")
 
-FetchContent_MakeAvailable(libtorch)
-find_package(Torch REQUIRED PATHS ${libtorch_SOURCE_DIR}/share/cmake/Torch)
+# Add torch specific compile flags
 add_compile_options(${TORCH_CXX_FLAGS})
 
-find_package(Python 3.9 EXACT REQUIRED COMPONENTS Interpreter Development)
-
+# Specify our executable
 add_executable(pytorchfromcpptest
   pytorchfromcpptest.cpp)
-
-if(APPLE AND (${CMAKE_HOST_SYSTEM_PROCESSOR} STREQUAL "arm64"))
-  # Hack to workaround https://github.com/mlverse/libtorch-mac-m1/issues/4 
-  target_link_libraries(pytorchfromcpptest
-    PRIVATE "${TORCH_INSTALL_PREFIX}/lib/libomp.dylib")
-
-  add_custom_command(TARGET pytorchfromcpptest 
-    POST_BUILD COMMAND 
-    ${CMAKE_INSTALL_NAME_TOOL} -change /opt/homebrew/opt/libomp/lib/libomp.dylib @rpath/libomp.dylib 
-    $<TARGET_FILE:pytorchfromcpptest>)
-endif()
 
 target_link_libraries(pytorchfromcpptest
   PRIVATE "${TORCH_LIBRARIES}")
@@ -85,7 +56,7 @@ target_link_libraries(pytorchfromcpptest PRIVATE "${TORCHPY_LIB}")
 
 # Give access to python files through a hardcoded definition
 target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_MODULE_SYS_PATH="${PyTorchFromCPPTest_SOURCE_DIR}")
-target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_TORCH_SYS_PATH="${TORCH_INSTALL_PREFIX}/lib/python3.9/site-packages/caffe2")
+target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_TORCH_SYS_PATH="${TORCH_CMAKE_PREFIX_PATH}/../../..")
 
 # Add to ctest
 enable_testing()
