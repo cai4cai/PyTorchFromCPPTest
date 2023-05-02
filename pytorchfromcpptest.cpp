@@ -6,6 +6,7 @@
 #include <pybind11/embed.h>
 #include <pybind11/pybind11.h>
 #include <torch/torch.h>
+#include <torch/extension.h>
 
 #include <iostream>
 
@@ -21,15 +22,25 @@ int hybridcall() {
 
   // Add source dir to python path
   py::module sys = py::module::import("sys");
-  sys.attr("path").attr("insert")(1, CUSTOM_SYS_PATH);
+  sys.attr("path").attr("insert")(1, CUSTOM_MODULE_SYS_PATH);
+
+  // Add torch from libtorch dir to python path
+  sys.attr("path").attr("insert")(1, CUSTOM_TORCH_SYS_PATH);
 
   // Load custom python module
-  py::module pytorchmodule = py::module::import("pytorchmodule");
-  std::cout << "Python module loaded from " << CUSTOM_SYS_PATH << std::endl;
+  py::module pycustomtorchmodule = py::module::import("pycustomtorchmodule");
+  std::cout << "Custom python module loaded from " << CUSTOM_MODULE_SYS_PATH << std::endl;
+
+  py::module pytorchmodule = py::module::import("torch");
+  std::cout << "Python torch module loaded from " << CUSTOM_TORCH_SYS_PATH << std::endl;
 
   // Run Python op
-  py::function pyop = pytorchmodule.attr("simpleop");
-  int pyretval = pyop().cast<py::int_>();
+  py::function pyop = pycustomtorchmodule.attr("simpleop");
+  int testinput = 21;
+  int pyretval = pyop(testinput).cast<py::int_>();
+  // The line below currently makes thes test segfault
+  //int pyretval = pyop(tensor).cast<py::int_>();
+  //auto pyretval = pyop(tensor);
   std::cout << "Python return value " << pyretval << std::endl;
 
   py::gil_scoped_release no_gil;

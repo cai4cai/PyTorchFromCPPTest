@@ -59,7 +59,7 @@ FetchContent_MakeAvailable(libtorch)
 find_package(Torch REQUIRED PATHS ${libtorch_SOURCE_DIR}/share/cmake/Torch)
 add_compile_options(${TORCH_CXX_FLAGS})
 
-find_package(Python REQUIRED COMPONENTS Interpreter Development)
+find_package(Python 3.9 EXACT REQUIRED COMPONENTS Interpreter Development)
 
 add_executable(pytorchfromcpptest
   pytorchfromcpptest.cpp)
@@ -80,8 +80,12 @@ target_link_libraries(pytorchfromcpptest
 target_link_libraries(pytorchfromcpptest
   PRIVATE Python::Python)
 
+find_library(TORCHPY_LIB NAMES torch_python HINTS "${TORCH_INSTALL_PREFIX}/lib")
+target_link_libraries(pytorchfromcpptest PRIVATE "${TORCHPY_LIB}")
+
 # Give access to python files through a hardcoded definition
-target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_SYS_PATH="${PyTorchFromCPPTest_SOURCE_DIR}")
+target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_MODULE_SYS_PATH="${PyTorchFromCPPTest_SOURCE_DIR}")
+target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_TORCH_SYS_PATH="${TORCH_INSTALL_PREFIX}/lib/python3.9/site-packages/caffe2")
 
 # Add to ctest
 enable_testing()
