@@ -38,10 +38,6 @@ int hybridcall() {
 
   // Run Python op
   py::function pyop = pycustomtorchmodule.attr("simpleop");
-  // int testinput = 21;
-  // int pyretval = pyop(testinput).cast<py::int_>();
-  //  The line below currently makes thes test segfault
-  // int pyretval = pyop(tensor).cast<py::int_>();
   torch::Tensor pyretval = pyop(tensor).cast<torch::Tensor>();
   std::cout << "Python return value " << std::endl << pyretval << std::endl;
 
