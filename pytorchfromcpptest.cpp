@@ -14,7 +14,22 @@ namespace py = pybind11;
 
 int hybridcall() {
   std::cout << "Starting test from c++" << std::endl;
-  torch::Tensor tensor = torch::rand({2, 3});
+  std::cout << "PyTorch version: " << TORCH_VERSION << std::endl;
+
+  torch::Device device = torch::kCPU;
+  if (torch::cuda::is_available()) {
+    std::cout << "CUDA is available. Running on GPU." << std::endl;
+    device = torch::kCUDA;
+  }
+#if TORCH_VERSION_MAJOR >= 2 && TORCH_VERSION_MINOR > 0
+  // See https://github.com/pytorch/pytorch/issues/96425
+  if (torch::mps::is_available()) {
+    std::cout << "MPS is available. Running on GPU." << std::endl;
+    device = torch::kMPS;
+  }
+#endif
+
+  torch::Tensor tensor = torch::rand({2, 3}, device);
   std::cout << "Random 2x3 tensor (c++ side):" << std::endl
             << tensor << std::endl;
 

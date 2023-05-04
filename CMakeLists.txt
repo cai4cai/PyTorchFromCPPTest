@@ -30,7 +30,9 @@ find_package(Python REQUIRED COMPONENTS Interpreter Development)
 message(STATUS "Found python: ${Python_EXECUTABLE}")
 
 # Find where pytorch lives
-execute_process(COMMAND ${Python_EXECUTABLE} ${PyTorchFromCPPTest_SOURCE_DIR}/findtorchcmake.py
+file(WRITE ${PyTorchFromCPPTest_BINARY_DIR}/findtorchcmake.py
+  "import torch; print(torch.utils.cmake_prefix_path)")
+execute_process(COMMAND ${Python_EXECUTABLE} ${PyTorchFromCPPTest_BINARY_DIR}/findtorchcmake.py
                 OUTPUT_VARIABLE TORCH_CMAKE_PREFIX_PATH
 		OUTPUT_STRIP_TRAILING_WHITESPACE
                 RESULT_VARIABLE FOUND_TORCH_CMAKE_PREFIX_PATH)
