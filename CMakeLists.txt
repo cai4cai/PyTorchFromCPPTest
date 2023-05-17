@@ -17,10 +17,10 @@ find_program(CLANG_TIDY_EXE NAMES clang-tidy PATHS /opt/homebrew/opt/llvm/bin/)
 if(NOT CLANG_TIDY_EXE)
   message(STATUS "clang-tidy not found. Skipping corresponding checks.")
 else()
-  set(CMAKE_CXX_CLANG_TIDY 
+  set(CMAKE_CXX_CLANG_TIDY
     ${CLANG_TIDY_EXE};
     -header-filter=.*;
-    -checks=-*,portability-*,bugprone-*,readability-,clang-analyzer-*,performance-*,cppcoreguidelines-*;
+    -checks=-*,portability-*,bugprone-*,readability-,clang-analyzer-*,performance-*,cppcoreguidelines-*,-cppcoreguidelines-avoid-magic-numbers;
     )
   message(STATUS "Found clang-tidy: ${CLANG_TIDY_EXE}.")
 endif()
@@ -34,7 +34,7 @@ file(WRITE ${PyTorchFromCPPTest_BINARY_DIR}/findtorchcmake.py
   "import torch; print(torch.utils.cmake_prefix_path)")
 execute_process(COMMAND ${Python_EXECUTABLE} ${PyTorchFromCPPTest_BINARY_DIR}/findtorchcmake.py
                 OUTPUT_VARIABLE TORCH_CMAKE_PREFIX_PATH
-		OUTPUT_STRIP_TRAILING_WHITESPACE
+                OUTPUT_STRIP_TRAILING_WHITESPACE
                 RESULT_VARIABLE FOUND_TORCH_CMAKE_PREFIX_PATH)
 message(STATUS "Found torch.utils.cmake_prefix_path: ${TORCH_CMAKE_PREFIX_PATH}")
 
@@ -60,14 +60,26 @@ target_link_libraries(pytorchfromcpptest PRIVATE "${TORCHPY_LIB}")
 cmake_path(NATIVE_PATH PyTorchFromCPPTest_SOURCE_DIR NORMALIZE NATIVE_CUSTOM_MODULE_SYS_PATH)
 if(WIN32)
   string(REPLACE "\\" "\\\\" NATIVE_CUSTOM_MODULE_SYS_PATH ${NATIVE_CUSTOM_MODULE_SYS_PATH})
-endif(WIN32)
+endif()
 target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_MODULE_SYS_PATH="${NATIVE_CUSTOM_MODULE_SYS_PATH}")
 set(torchpath "${TORCH_CMAKE_PREFIX_PATH}/../../..")
 cmake_path(NATIVE_PATH torchpath NORMALIZE NATIVE_CUSTOM_TORCH_SYS_PATH)
 if(WIN32)
   string(REPLACE "\\" "\\\\" NATIVE_CUSTOM_TORCH_SYS_PATH ${NATIVE_CUSTOM_TORCH_SYS_PATH})
-endif(WIN32)
+endif()
 target_compile_definitions(pytorchfromcpptest PRIVATE CUSTOM_TORCH_SYS_PATH="${NATIVE_CUSTOM_TORCH_SYS_PATH}")
+
+# Specify another executable
+add_executable(pytorchfromcpptestwiththreadedloop
+  pytorchfromcpptestwiththreadedloop.cpp)
+target_link_libraries(pytorchfromcpptestwiththreadedloop
+  PRIVATE "${TORCH_LIBRARIES}")
+target_link_libraries(pytorchfromcpptestwiththreadedloop
+  PRIVATE Python::Python)
+target_link_libraries(pytorchfromcpptestwiththreadedloop
+  PRIVATE "${TORCHPY_LIB}")
+target_compile_definitions(pytorchfromcpptestwiththreadedloop PRIVATE CUSTOM_MODULE_SYS_PATH="${NATIVE_CUSTOM_MODULE_SYS_PATH}")
+target_compile_definitions(pytorchfromcpptestwiththreadedloop PRIVATE CUSTOM_TORCH_SYS_PATH="${NATIVE_CUSTOM_TORCH_SYS_PATH}")
 
 # Add to ctest
 enable_testing()
