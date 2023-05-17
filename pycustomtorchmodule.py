@@ -1,4 +1,4 @@
-import torch
+import torch  # noqa: F401
 
 
 def simpleop(inval):
@@ -9,6 +9,6 @@ def simpleop(inval):
 
 def opwithglobal(inval):
     print("Start python op")
-    print(globalval)
+    print(globalval)  # noqa: F821
     print(inval)
-    return globalval + inval
+    return globalval + inval  # noqa: F821
