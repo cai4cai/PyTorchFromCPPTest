@@ -70,60 +70,85 @@ int hybridcall() {
 
   py::scoped_interpreter guard{};
 
-  py::module pycustomtorchmodule = setupandloadpymodule();
+  // As per
+  // https://github.com/pybind/pybind11/discussions/4673#discussioncomment-5939343
+  // the python interpreter has to be alive to properly catch exceptions
+  // stemming from python See also
+  // https://pybind11.readthedocs.io/en/stable/reference.html#_CPPv4NK17error_already_set4whatEv
+  try {
+    py::module pycustomtorchmodule = setupandloadpymodule();
 
-  // Add variables to the custom module
-  pycustomtorchmodule.attr("globalval") = globaltensor;
+    // Add variables to the custom module
+    pycustomtorchmodule.attr("globalval") = globaltensor;
 
-  // Prepare thread. Don't use a thread pool to avoid messing up with th GIL
-  py::gil_scoped_release no_gil;
-  std::future<void> pyfuture;
+    // Prepare thread. Don't use a thread pool to avoid messing up with th GIL
+    py::gil_scoped_release no_gil;
+    std::future<void> pyfuture;
 
-  // Define the function that will call python in the thread
-  // Silence the warning about using a reference for teh tensor as this
-  // leds to crashs and tensors use shallow copy anyway
-  // NOLINTNEXTLINE(performance-unnecessary-value-param)
-  auto wrappedop = [](py::module& custommodule, torch::Tensor inputtensor) {
-    py::gil_scoped_acquire gil;
-    py::function pyop = custommodule.attr("opwithglobal");
-    torch::Tensor pyretval = pyop(inputtensor).cast<torch::Tensor>();
+    // Define the function that will call python in the thread
+    // Silence the warning about using a reference for the tensor as this
+    // leds to crashs and tensors use shallow copy anyway
+    // NOLINTNEXTLINE(performance-unnecessary-value-param)
+    auto wrappedop = [](py::module& custommodule, torch::Tensor inputtensor) {
+      try {
+        py::gil_scoped_acquire gil;
+        py::function pyop = custommodule.attr("opwithglobal");
+        torch::Tensor pyretval = pyop(inputtensor).cast<torch::Tensor>();
 
-    // Simulate tie consuming task
-    std::this_thread::sleep_for(50ms);
+        // Simulate tie consuming task
+        std::this_thread::sleep_for(50ms);
 
-    std::cout << "Python return value (in c++) " << std::endl
-              << pyretval << std::endl;
-  };
+        std::cout << "Python return value (in c++) " << std::endl
+                  << pyretval << std::endl;
+      } catch (const py::error_already_set& e) {
+        std::cout << "Caught py::error_already_set exception in wrappedop"
+                  << e.what() << std::endl;
+        return;
+      } catch (const std::exception& e) {
+        // standard exceptions
+        std::cout << "Caught std::exception in wrappedop: " << e.what()
+                  << std::endl;
+        return;
+      } catch (...) {
+        // everything else
+        std::cout << "Caught unknown exception in wrappedop" << std::endl;
+        return;
+      }
+    };
 
-  // Simulate a fast loop running on c++
-  for (int i = 0; i < 100; ++i) {
-    // Let's assume we create a tensor
-    torch::Tensor localtensor = torch::arange(i, i + 3, device);
-    // std::cout << "Example localtensor (c++ side):" << std::endl
-    //           << localtensor << std::endl;
+    // Simulate a fast loop running on c++
+    for (int i = 0; i < 100; ++i) {
+      // Let's assume we create a tensor
+      torch::Tensor localtensor = torch::arange(i, i + 3, device);
+      // std::cout << "Example localtensor (c++ side):" << std::endl
+      //           << localtensor << std::endl;
 
-    // Simulate fast (but not immediate) processing
-    std::this_thread::sleep_for(5ms);
+      // Simulate fast (but not immediate) processing
+      std::this_thread::sleep_for(5ms);
 
-    // Use wait_for() with zero milliseconds to check thread status.
-    bool threadready = ((!pyfuture.valid()) ||
-                        (pyfuture.wait_for(0ms) == std::future_status::ready));
-    if (threadready) {
-      // clone the tensor
-      torch::Tensor localtensorclone = torch::clone(localtensor);
+      // Use wait_for() with zero milliseconds to check thread status.
+      bool threadready = ((!pyfuture.valid()) || (pyfuture.wait_for(0ms) ==
+                                                  std::future_status::ready));
+      if (threadready) {
+        // clone the tensor
+        torch::Tensor localtensorclone = torch::clone(localtensor);
 
-      // Run Python op
-      std::cout << "Launching thread at iter " << i << " with cloned tensor "
-                << std::endl
-                << localtensorclone << std::endl;
-      pyfuture = std::async(std::launch::async, wrappedop,
-                            std::ref(pycustomtorchmodule), localtensorclone);
-    } else {
-      std::cout << "Thread is busy at iter " << i << std::endl;
+        // Run Python op
+        std::cout << "Launching thread at iter " << i << " with cloned tensor "
+                  << std::endl
+                  << localtensorclone << std::endl;
+        pyfuture = std::async(std::launch::async, wrappedop,
+                              std::ref(pycustomtorchmodule), localtensorclone);
+      } else {
+        std::cout << "Thread is busy at iter " << i << std::endl;
+      }
     }
-  }
 
-  pyfuture.get();
+    pyfuture.get();
+  } catch (const py::error_already_set& e) {
+    std::cout << "Rethrowing py::error_already_set exception" << std::endl;
+    throw std::runtime_error(e.what());
+  }
 
   return EXIT_SUCCESS;
 }

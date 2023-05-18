@@ -64,12 +64,22 @@ int hybridcall() {
 
   py::scoped_interpreter guard{};
 
-  py::module pycustomtorchmodule = setupandloadpymodule();
+  // As per
+  // https://github.com/pybind/pybind11/discussions/4673#discussioncomment-5939343
+  // the python interpreter has to be alive to properly catch exceptions
+  // stemming from python See also
+  // https://pybind11.readthedocs.io/en/stable/reference.html#_CPPv4NK17error_already_set4whatEv
+  try {
+    py::module pycustomtorchmodule = setupandloadpymodule();
 
-  // Run Python op
-  py::function pyop = pycustomtorchmodule.attr("simpleop");
-  torch::Tensor pyretval = pyop(tensor).cast<torch::Tensor>();
-  std::cout << "Python return value " << std::endl << pyretval << std::endl;
+    // Run Python op
+    py::function pyop = pycustomtorchmodule.attr("simpleop");
+    torch::Tensor pyretval = pyop(tensor).cast<torch::Tensor>();
+    std::cout << "Python return value " << std::endl << pyretval << std::endl;
+  } catch (const py::error_already_set& e) {
+    std::cout << "Rethrowing py::error_already_set exception" << std::endl;
+    throw std::runtime_error(e.what());
+  }
 
   py::gil_scoped_release no_gil;
 
