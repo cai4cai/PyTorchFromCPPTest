@@ -81,6 +81,11 @@ target_link_libraries(pytorchfromcpptestwiththreadedloop
 target_compile_definitions(pytorchfromcpptestwiththreadedloop PRIVATE CUSTOM_MODULE_SYS_PATH="${NATIVE_CUSTOM_MODULE_SYS_PATH}")
 target_compile_definitions(pytorchfromcpptestwiththreadedloop PRIVATE CUSTOM_TORCH_SYS_PATH="${NATIVE_CUSTOM_TORCH_SYS_PATH}")
 
+# Some systems needs to link explicitely with pthread
+find_package(Threads REQUIRED)
+target_link_libraries(pytorchfromcpptestwiththreadedloop
+  PRIVATE Threads::Threads)
+
 # Add to ctest
 enable_testing()
 add_test(NAME pytorchfromcpptest COMMAND pytorchfromcpptest)
