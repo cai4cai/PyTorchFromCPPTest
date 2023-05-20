@@ -47,14 +47,12 @@ jobs:
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
       run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
 
-    - name: Simple exe run (Windows) - Disabled
+    - name: Simple exe run (Windows)
       #if: ${{ false }}
       if: matrix.os == 'windows-latest'
       shell: bash
       working-directory: ${{github.workspace}}/build/${{env.BUILD_TYPE}}/
-      run: |
-        pytorchfromcpptest.exe
-        ls
+      run: ./pytorchfromcpptest.exe
 
     - name: Simple exe run (Not Windows)
       if: matrix.os != 'windows-latest'
