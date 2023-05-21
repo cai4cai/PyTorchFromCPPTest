@@ -88,4 +88,46 @@ target_link_libraries(pytorchfromcpptestwiththreadedloop
 
 # Add to ctest
 enable_testing()
+
+# There is no rpath on windows -> use cmake hack
+# to help ctest find the dlls
+function(getpathsforctest path_list target)
+  get_target_property(libs ${target} LINK_LIBRARIES)
+  set(lib_paths "")
+  foreach(lib ${libs})
+    set(lib_file "")
+    if (TARGET ${lib})
+      get_target_property(lib_file ${lib} LOCATION)
+    elseif(EXISTS ${lib})
+      set(lib_file ${lib})
+    endif()
+    if(EXISTS ${lib_file})
+      get_filename_component(lib_path ${lib_file} DIRECTORY)
+      cmake_path(NATIVE_PATH lib_path NORMALIZE lib_path)
+      list(APPEND lib_paths ${lib_path})
+    endif()
+  endforeach()
+  list(REMOVE_DUPLICATES lib_paths)
+
+  if(WIN32)
+    list(JOIN lib_paths "\\\;" lib_paths)
+  else()
+    list(JOIN lib_paths ":" lib_paths)
+  endif()
+  
+  set(${path_list} ${lib_paths} PARENT_SCOPE)
+endfunction()
+
 add_test(NAME pytorchfromcpptest COMMAND pytorchfromcpptest)
+if(WIN32)
+  getpathsforctest(test_paths pytorchfromcpptest)
+  message("pytorchfromcpp test_paths: ${test_paths}")
+  set_property(TEST pytorchfromcpptest PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${test_paths}")
+endif()
+
+add_test(NAME pytorchfromcpptestwiththreadedloop COMMAND pytorchfromcpptestwiththreadedloop)
+if(WIN32)
+  getpathsforctest(test_paths pytorchfromcpptestwiththreadedloop)
+  message("pytorchfromcpptestwiththreadedloop test_paths: ${test_paths}")
+  set_property(TEST pytorchfromcpptestwiththreadedloop PROPERTY ENVIRONMENT_MODIFICATION "PATH=path_list_prepend:${test_paths}")
+endif()

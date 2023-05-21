@@ -40,23 +40,9 @@ jobs:
       # Build your program with the given configuration
       run: cmake --build ${{github.workspace}}/build --config ${{env.BUILD_TYPE}}
 
-    - name: Test - Disabled for Windows
-      if: matrix.os != 'windows-latest'
+    - name: Test
       working-directory: ${{github.workspace}}/build
       # Execute tests defined by the CMake configuration.
       # See https://cmake.org/cmake/help/latest/manual/ctest.1.html for more detail
-      run: ctest -C ${{env.BUILD_TYPE}} --output-on-failure
-
-    - name: Simple exe run (Windows)
-      #if: ${{ false }}
-      if: matrix.os == 'windows-latest'
-      shell: bash
-      working-directory: ${{github.workspace}}/build/${{env.BUILD_TYPE}}/
-      run: ./pytorchfromcpptest.exe
-
-    - name: Simple exe run (Not Windows)
-      if: matrix.os != 'windows-latest'
-      working-directory: ${{github.workspace}}/build
-      run: ./pytorchfromcpptest
-      shell: bash
+      run: ctest -V -C ${{env.BUILD_TYPE}} --output-on-failure
 
