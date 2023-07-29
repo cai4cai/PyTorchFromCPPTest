@@ -5,7 +5,7 @@ Since we use the python side of PyTorch in addition to the c++ side, libtorch is
 
 A slightly more elaborate example shows the potential usefulness of this construct in a scenario for a c++ program runs a fast loop and at each iteration a threaded call to a slower python function is attempted. To avoid tampering with the GIL, the slow python call is skipped if the runner thread is bussy.
 
-This example is tested though GitHub Actions on linux, mac and windows albeit using only CPU runners. A non-automated test with CUDA can be done through [Google colab](https://colab.research.google.com/drive/14sCD9eq4HPws0z_tru19t_nsJiEPp59P?usp=sharing).
+This example is tested though GitHub Actions on linux, mac and windows albeit using only CPU runners. A non-automated test with CUDA can be done through [Google colab](https://colab.research.google.com/github/cai4cai/PyTorchFromCPPTest/blob/main/pytorchfromcpptest_colabcudatest.ipynb).
 A local test also confirmed this runs on Apple MPS.
 
 ## Resources
